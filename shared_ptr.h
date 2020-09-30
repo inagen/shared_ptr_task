@@ -47,7 +47,7 @@ struct control_block_ptr : control_block, D {
         static_cast<D&>(*this)(ptr); // кастуемся к типу D и вызываем делитер
     }
 
-    ~control_block_ptr() override {}
+    ~control_block_ptr() override = default;
 private:    
     Y* ptr;
 };
@@ -68,7 +68,7 @@ struct control_block_obj : control_block, D {
         return reinterpret_cast<Y*>(&data);
     }
 
-    ~control_block_obj() override {}
+    ~control_block_obj() override = default;
 
 private: 
     typename std::aligned_storage<sizeof(Y), alignof(Y)>::type data;
@@ -101,7 +101,7 @@ struct shared_ptr {
     }
 
     template<typename Y, typename D = std::default_delete<Y>>
-    shared_ptr(Y* p, D deleter = D{}) {
+    explicit shared_ptr(Y* p, D deleter = D{}) {
         try { 
             cb = new control_block_ptr(p, deleter); 
             ptr = p;
@@ -118,7 +118,7 @@ struct shared_ptr {
         }
     }
 
-    shared_ptr(std::nullptr_t) noexcept : ptr(nullptr), cb(nullptr) {};
+    shared_ptr(std::nullptr_t) noexcept {};
 
 
     shared_ptr(shared_ptr&& rhs)  noexcept : cb(rhs.cb), ptr(rhs.ptr) {
@@ -172,7 +172,7 @@ struct shared_ptr {
 
     template<typename Y, typename Deleter = std::default_delete<Y>>
     void reset(Y* ptr, Deleter d = Deleter{}) {
-        shared_ptr<T>(ptr, d).swap(*this);
+        shared_ptr(ptr, d).swap(*this);
     }
 
 
@@ -271,7 +271,7 @@ struct weak_ptr {
     }
 
     template<typename Y>
-    weak_ptr(shared_ptr<Y>& r) noexcept : cb(r.cb), ptr(r.ptr) {
+    weak_ptr(shared_ptr<Y> const& r) noexcept : cb(r.cb), ptr(r.ptr) {
         if (cb != nullptr) {
             cb->add_weak();
         }
